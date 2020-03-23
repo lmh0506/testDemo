@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+  <title>自定义栅格底图</title>
+  <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+  <style>
+    html,
+    body,
+    #container {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .amap-logo,
+    .amap-copyright {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container"></div>
+  <script language="javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=417c5f13e32b3596ca8888cebfa3fabc">
+  </script>
+  <script src="https://unpkg.com/gcoord/dist/gcoord.js"></script>
+  <script>
+    var xyzTileLayer = new AMap.TileLayer({
+      // 图块取图地址
+      getTileUrl: 'http://t{0,1,2,3,4,5,6,7}.tianditu.gov.cn/DataServer?T=vec_w&tk=ef63801764261c156ba74a40612a717b&x=[x]&y=[y]&l=[z]',
+      zIndex: 100
+    });
+
+    var wordTileLayer = new AMap.TileLayer({
+      // 图块取图地址
+      getTileUrl: 'http://t{0,1,2,3,4,5,6,7}.tianditu.gov.cn/DataServer?T=cva_w&tk=ef63801764261c156ba74a40612a717b&x=[x]&y=[y]&l=[z]',
+      zIndex: 101
+    });
+
+    var marker = new AMap.Marker({
+      position: new AMap.LngLat(120.1635666667,
+        30.2105383333), // 经纬度对象，也可以是经纬度构成的一维数组[120.1635666667, 30.2105383333]
+    });
+
+    var result = gcoord.transform(
+      [120.1635666667, 30.2105383333], // 经纬度坐标
+      gcoord.WGS84, // 当前坐标系
+      gcoord.AMap // 目标坐标系
+    );
+
+    console.log(result);
+
+    var map = new AMap.Map('container', {
+      center: [120.1635666667, 30.2105383333],
+      zoom: 16,
+      // crs: 'EPSG4326',
+      // viewMode: '3D',
+      // pitch: 60,
+      // rotation: -35,
+      // // 隐藏默认楼块
+      // features: ['bg', 'road', 'point'],
+      resizeEnable: true,
+      layers: [
+        xyzTileLayer, wordTileLayer,
+        // 楼块图层
+        //     new AMap.TileLayer.Satellite(),
+        // new AMap.Buildings({
+        //   zooms: [15, 18],
+        //   zIndex: 110,
+        //   heightFactor: 2 //2倍于默认高度，3D下有效
+        // })
+      ]
+    });
+
+    // 将创建的点标记添加到已有的地图实例：
+    map.add(marker);
+  </script>
+</body>
+
+</html>

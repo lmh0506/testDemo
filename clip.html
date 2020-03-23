@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    body{
+      background: #000;
+    }
+    .el{
+      margin: 100px auto;
+
+      border-radius: 5px;
+      /* background-color: rgba(0, 127, 127, 0.37);
+      border: 1px solid rgba(127, 255, 255, 0.25); */
+      color: rgba(127, 255, 255, 0.75);
+      width: 400px;
+      height: 100px;
+      box-sizing: border-box;
+    }
+    .shine{
+      width: 400px;
+      height: 100px;
+      border-radius: 5px;
+      /* box-shadow: 0 0 15px 0 rgba(0, 255, 255, .5); */
+      position: relative;
+    }
+
+    .shine:before,
+    .shine:after {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        content: '';
+        box-shadow: inset 0 0 0 1px;
+        border-radius: 5px;
+        /* clip: rect(0, 400px, 100px, 397px); */
+        animation: clipMe 8s linear infinite;
+    }
+
+    .shine:before {
+        animation-delay: -4s;
+    }
+
+    
+    @keyframes clipMe {
+      /* clip需要绝对定位元素  已被弃用  使用clip-path */
+      0%,
+      100% {
+        /* clip: rect(0, 400px, 1px, 0); */
+        
+        clip-path: inset(0 0 99px 0);
+      }
+
+      25% {
+        /* clip: rect(0, 1px, 100px, 0); */
+        
+        clip-path: inset(0 399px 0 0);
+      }
+
+      50% {
+        /* clip: rect(97px, 400px, 100px, 0); */
+        
+        clip-path: inset(99px 0 0 0);
+      }
+
+      75% {
+        /* clip: rect(0, 400px, 100px, 397px); */
+        
+        clip-path: inset(0 0 0 399px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="el shine"></div>
+</body>
+</html>

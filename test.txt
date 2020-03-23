@@ -1,0 +1,1 @@
+accessKeyId=12i94UHmzQVLlr5C, identifier=db56be67-0191-4f23-82ac-86c402287e53, unit=ss, productId=10341, signature=1, masterKey=NjNmNTQ4ZDAwOGY5MzY5MDZhOTU=, name=测试, signatureNonce=5839, accessMode=2, type=2
