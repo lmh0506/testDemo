@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+  <title>3d区域地图</title>
+  <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+  <style>
+    html,
+    body,
+    #container {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .amap-logo,
+    .amap-copyright {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container"></div>
+  <script language="javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=417c5f13e32b3596ca8888cebfa3fabc&plugin=AMap.DistrictSearch">
+  </script>
+  <script>
+    var map = new AMap.Map('container', {
+      viewMode: '3D',
+      pitch: 50,
+      zoom: 11,
+      center: [120.21062,30.206615],
+      layers: [
+        // xyzTileLayer, wordTileLayer,
+        // 楼块图层
+        new AMap.Buildings({
+          visible: false
+        })
+      ],
+      // defaultLayer: []
+    });
+
+    const areaList = ['滨江区', '萧山区', '上城区']
+    const colorList = ['#0088ff', '#ee0a24', '#07c160']
+
+    // 设置光照
+    map.AmbientLight = new AMap.Lights.AmbientLight([1, 1, 1], 0.5);
+    map.DirectionLight = new AMap.Lights.DirectionLight([0, 0, 1], [1, 1, 1], 1);
+
+    var object3Dlayer = new AMap.Object3DLayer();
+    map.add(object3Dlayer);
+
+    var textLayer, druckMeshes;
+
+    areaList.forEach((area, index) =>{
+      new AMap.DistrictSearch({
+          subdistrict: 0,   //返回下一级行政区
+          extensions: 'all',  //返回行政区边界坐标组等具体信息
+          level: 'city'  //查询行政级别为 市
+      }).search(area, function (status, result) {
+          var bounds = result.districtList[0].boundaries;
+          var height = 5000;
+          var color = colorList[index] + 'cc'; // rgba
+          var prism = new AMap.Object3D.Prism({
+              path: bounds,
+              height: height,
+              color: color
+          });
+          console.log(prism)
+
+          prism.transparent = true;
+          prism.data = {
+            center: result.districtList[0].center,
+            name: area
+          }
+          object3Dlayer.add(prism);
+      });
+    })
+
+    // prism 拾取
+    map.on('click', function (ev) {
+      var pixel = ev.pixel;
+      var px = new AMap.Pixel(pixel.x, pixel.y);
+      var obj = map.getObject3DByContainerPos(px, [object3Dlayer], false) || {};
+
+      // 选中的 face 所在的索引
+      var index = obj.index;
+      // 选中的 object3D 对象，这里为当前 Mesh
+      var object = obj.object;
+      // 被拾取到的对象和拾取射线的交叉点的3D坐标
+      var point = obj.point;
+      // 交叉点距透视原点的距离
+      var distance = obj.distance;
+
+      console.log('obj', obj)
+
+      if(obj.object) {
+        if(druckMeshes) {
+          let layerMesh = druckMeshes.layerMesh.find(item => item === obj.object)
+          if(layerMesh) return
+        }
+        let {center, name} = obj.object.data
+        
+        
+        if(!textLayer) {
+          textLayer = new AMap.Text({
+            text: name,
+            verticalAlign: 'bottom',
+            position: center,
+            height: 20000,
+            style: {
+              'background-color': 'transparent',
+              '-webkit-text-stroke': 'red',
+              '-webkit-text-stroke-width': '0.5px',
+              'text-align': 'center',
+              'border': 'none',
+              'color': 'white',
+              'font-size': '24px',
+              'font-weight': 600
+            }
+          });
+
+          textLayer.setMap(map);
+        } else {
+          textLayer.setPosition(center)
+          textLayer.setText(name)
+        }
+
+        if(!druckMeshes) {
+          map.plugin(["AMap.GltfLoader"], function () {
+            var urlDuck = 'https://a.amap.com/jsapi_demos/static/gltf/Duck.gltf';
+            var paramDuck = {
+              position: center, // 必须
+              scale: 8000, // 非必须，默认1
+              height: 4000,  // 非必须，默认0
+              scene: 0, // 非必须，默认0
+            };
+
+            var gltfObj = new AMap.GltfLoader();
+            gltfObj.load(urlDuck, function (gltfDuck) {
+              druckMeshes = gltfDuck;
+              druckMeshes.setOption(paramDuck);
+              druckMeshes.rotateX(90);
+              druckMeshes.rotateZ(90);
+              object3Dlayer.add(druckMeshes);
+              rotate()
+            });
+          });
+        } else {
+          console.log('druckMeshes', druckMeshes)
+          druckMeshes.layerMesh.forEach(item => {
+            item.position(center)
+          })
+          // object3Dlayer.reDraw()
+        }
+      }
+    });
+
+    function rotate() {
+      druckMeshes.layerMesh.forEach(item => {
+        item.rotateY(-10)
+      })
+      AMap.Util.requestAnimFrame(rotate);
+    }
+  </script>
+</body>
+
+</html>

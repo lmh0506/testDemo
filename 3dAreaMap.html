@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+  <title>3d区域地图</title>
+  <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+  <style>
+    html,
+    body,
+    #container {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .amap-logo,
+    .amap-copyright {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container"></div>
+  <script language="javascript"
+    src="https://webapi.amap.com/maps?v=1.4.15&key=417c5f13e32b3596ca8888cebfa3fabc&plugin=AMap.DistrictSearch">
+    </script>
+  <script>
+
+    const areaList = ['滨江区', '萧山区', '上城区']
+    const colorList = ['#0088ff', '#ee0a24', '#07c160']
+
+    var textLayer, druckMeshes;
+    var masks = []
+    let polygons = []
+    let datas = []
+    let count = 0
+    let lasPol = null
+
+    function rotate() {
+      druckMeshes.layerMesh.forEach(item => {
+        item.rotateY(-10)
+      })
+      AMap.Util.requestAnimFrame(rotate);
+    }
+
+    areaList.forEach((area, index) => {
+      new AMap.DistrictSearch({
+        subdistrict: 0,   //返回下一级行政区
+        extensions: 'all',  //返回行政区边界坐标组等具体信息
+        level: 'city'  //查询行政级别为 市
+      }).search(area, function (status, result) {
+        var bounds = result.districtList[0].boundaries;
+        masks.push(bounds)
+        datas.push({
+          center: result.districtList[0].center,
+          name: area
+        })
+        count++
+
+        // 接口全部请求完后初始化地图
+        if (count === area.length) {
+          let topLeftX = Infinity
+          let topLeftY = -Infinity
+          let bottomRightX = -Infinity
+          let bottomRightY = Infinity
+          masks.forEach(item => {
+            item[0].forEach(i => {
+              let lng = i.getLng()
+              let lat = i.getLat()
+
+              if (lng < topLeftX) {
+                topLeftX = lng
+              }
+              if (lng > bottomRightX) {
+                bottomRightX = lng
+              }
+              if (lat < bottomRightY) {
+                bottomRightY = lat
+              }
+              if (lat > topLeftY) {
+                topLeftY = lat
+              }
+            })
+
+          })
+          let imageLayer = new AMap.ImageLayer({
+            url: 'https://a.amap.com/jsapi_demos/static/texture3d/shuilifang.png',
+            bounds: new AMap.Bounds([topLeftX, bottomRightY], [bottomRightX, topLeftY])
+          });
+
+          initMap(imageLayer)
+        }
+      });
+    })
+
+    function initMap(imageLayer) {
+      var map = new AMap.Map('container', {
+        mask: masks,
+        viewMode: '3D',
+        disableSocket: true,
+        pitch: 50,
+        zoom: 11,
+        center: [120.21062, 30.206615],
+        layers: [imageLayer]
+      });
+
+      // 设置光照
+      map.AmbientLight = new AMap.Lights.AmbientLight([1, 1, 1], 0.5);
+      map.DirectionLight = new AMap.Lights.DirectionLight([0, 0, 1], [1, 1, 1], 1);
+
+      var object3Dlayer = new AMap.Object3DLayer();
+      map.add(object3Dlayer);
+
+      masks.forEach((item, index) => {
+        // 墙体必须低于海平面 即0
+        var height = -8000;
+        var color = colorList[index] + 'cc';//rgba
+        var wall = new AMap.Object3D.Wall({
+          path: item,
+          height: height,
+          color: color
+        });
+        wall.transparent = true
+        object3Dlayer.add(wall)
+
+        //添加区域面  并设置点击事件
+        for (var i = 0; i < item.length; i += 1) {
+          let p = new AMap.Polygon({
+            path: item[i],
+            strokeColor: colorList[index],
+            strokeWeight: 4,
+            fillOpacity: 0.5,
+            fillColor: colorList[index],
+            map: map,
+            extData: index
+          })
+
+          p.on('click', e => {
+            if(lasPol) {
+              let opt = lasPol.getOptions()
+              opt.fillOpacity = 0.5
+              lasPol.setOptions(opt)
+            }
+            
+            lasPol = e.target
+            let opt = e.target.getOptions()
+            opt.fillOpacity = 0.8
+            e.target.setOptions(opt)
+
+            let { name, center } = datas[index]
+            if (!textLayer) {
+              textLayer = new AMap.Text({
+                text: name,
+                verticalAlign: 'bottom',
+                position: center,
+                height: 20000,
+                style: {
+                  'background-color': 'transparent',
+                  '-webkit-text-stroke': 'red',
+                  '-webkit-text-stroke-width': '0.5px',
+                  'text-align': 'center',
+                  'border': 'none',
+                  'color': 'white',
+                  'font-size': '24px',
+                  'font-weight': 600
+                }
+              });
+
+              textLayer.setMap(map);
+            } else {
+              textLayer.setPosition(center)
+              textLayer.setText(name)
+            }
+
+            if (!druckMeshes) {
+              map.plugin(["AMap.GltfLoader"], function () {
+                var urlDuck = 'https://a.amap.com/jsapi_demos/static/gltf/Duck.gltf';
+                var paramDuck = {
+                  position: center, // 必须
+                  scale: 8000, // 非必须，默认1
+                  height: 4000,  // 非必须，默认0
+                  scene: 0, // 非必须，默认0
+                };
+
+                var gltfObj = new AMap.GltfLoader();
+                gltfObj.load(urlDuck, function (gltfDuck) {
+                  druckMeshes = gltfDuck;
+                  druckMeshes.setOption(paramDuck);
+                  druckMeshes.rotateX(90);
+                  druckMeshes.rotateZ(90);
+                  object3Dlayer.add(druckMeshes);
+                  rotate()
+                });
+              });
+            } else {
+              druckMeshes.layerMesh.forEach(item => {
+                item.position(center)
+              })
+            }
+          })
+        }
+      })
+    }
+  </script>
+</body>
+
+</html>
