@@ -16,6 +16,12 @@
       width: 100%;
       height: 100%;
     }
+    #container{
+      background: transparent !important;
+    }
+    body{
+      background: red;
+    }
 
     .amap-logo,
     .amap-copyright {
@@ -106,7 +112,8 @@
         pitch: 50,
         zoom: 11,
         center: [120.21062, 30.206615],
-        layers: [imageLayer]
+        layers: [imageLayer],
+        skyColor: 'transparent'
       });
 
       // 设置光照
